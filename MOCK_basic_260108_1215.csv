@@ -1,0 +1,21 @@
+Data,CountableDataSummary,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Version,2.0.1.1735,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+InstrumentSerialNumber,BETA+02,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+CarouselPosition,TubePosition,StripBarcode,SampleName,SampleID,GroupName,Ch01_CountsPer50ul,Ch02_CountsPer50ul,Ch03_CountsPer50ul,Ch04_CountsPer50ul,Ch01_IDscore,Ch02_IDscore,Ch03_IDscore,Ch04_IDscore,Ch01_Signal,Ch02_Signal,Ch03_Signal,Ch04_Signal,Ch01_Background,Ch02_Background,Ch03_Background,Ch04_Background,Ch01_Issues,Ch02_Issues,Ch03_Issues,Ch04_Issues,Ch01_Observation,Ch02_Observation,Ch03_Observation,Ch04_Observation
+1,1,2G824E,set_1_template_one,2G824E_01,,10,7,6,5515,NA,NA,NA,98.6,8468,8907,3731,29619,81,167,198,251,,,,,Training sample needed for improved accuracy.,Training sample needed for improved accuracy.,Training sample needed for improved accuracy.,
+1,2,2G824E,set_2_template_one,2G824E_02,,5434,1,8,9,NA,NA,NA,NA,8721,118941,3703,6622,88,121,103,177,,,,,,Training sample needed for improved accuracy.,Training sample needed for improved accuracy.,Training sample needed for improved accuracy.
+1,3,2G824E,set_3_template_one,2G824E_03,,8,5382,7,5,NA,NA,NA,0,14854,6535,7706,838,95,142,106,218,,,,Low ID score.,Training sample needed for improved accuracy.,Training sample needed for improved accuracy.,Training sample needed for improved accuracy.,Low Signal.
+1,4,2G824E,set_4_template_one,2G824E_04,,10,0,5562,8,NA,NA,99.5,NA,2776,0,13654,676,81,161,218,215,,,,,Training sample needed for improved accuracy.Low Signal.,Training sample needed for improved accuracy.,,Training sample needed for improved accuracy.Low Signal.
+2,1,2G824F,set_1_template_water,2G824F_01,,11,7,9,2,NA,NA,NA,NA,,,,,,,,,,,,,,,,
+2,2,2G824F,set_2_template_water,2G824F_02,,4,2,8,11,NA,NA,NA,NA,,,,,,,,,,,,,,,,
+2,3,2G824F,set_3_template_water,2G824F_03,,5,6,4,5,NA,NA,NA,NA,,,,,,,,,,,,,,,,
+2,4,2G824F,set_4_template_water,2G824F_04,,9,7,6,5,NA,NA,NA,NA,,,,,,,,,,,,,,,,
+3,1,2G824B,set_1_template_all,2G824B_01,,5,6,7,5521,NA,NA,NA,NA,,,,,,,,,,,,,,,,
+3,2,2G824B,set_2_template_all,2G824B_02,,5877,6,9,0,NA,NA,NA,NA,,,,,,,,,,,,,,,,
+3,3,2G824B,set_3_template_all,2G824B_03,,5,5463,2,8,NA,NA,NA,NA,,,,,,,,,,,,Low ID score.,Training sample needed for improved accuracy.,,Training sample needed for improved accuracy.Low Signal.,Low Signal.
+3,4,2G824B,set_4_template_all,2G824B_04,,4,5,4998,7,NA,NA,NA,NA,,,,,,,,,,,,Low ID score.,Training sample needed for improved accuracy.,,Training sample needed for improved accuracy.Low Signal.,Low Signal.
+4,1,2G824C,set_all_template_all_rep1,2G824C_01,,4445,6697,4346,5503,99.8,94.5,99.5,99.6,7878,9326,13599,29765,85,165,231,236,,,,,,,,
+4,2,2G824C,set_all_template_all_rep2,2G824C_02,,4713,6784,4717,5713,100,98.2,99.6,99.5,9057,11996,15155,32655,81,169,223,234,,,,,,,,
+4,3,2G824C,set_all_template_water_rep1,2G824C_03,,155,1352,12,3272,NA,NA,NA,1.6,8305,16627,762,820,87,175,214,251,,,,,,,,
+4,4,2G824C,set_all_template_water_rep2,2G824C_04,,159,1511,8,3472,NA,NA,NA,1.5,7407,15487,1115,697,87,176,211,252,,,,,,,,

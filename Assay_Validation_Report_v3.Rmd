@@ -1,0 +1,269 @@
+---
+title: "Assay Testing"
+output: html_document
+date: "2026-01-26"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# load libraries
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(svglite)
+library(base64enc)
+
+# stat packages
+```
+
+```{r define assay, include=TRUE}
+
+# target name by color channel. Must include Ch number as prefix else graph will mis-order alphabetically
+Ch01_target_name <- "Ch01_NCO2"
+Ch02_target_name <- "Ch02_VWC2"
+Ch03_target_name <- "Ch03_ZNF768"
+Ch04_target_name <- "Ch04_MIR129-2"
+
+# thresholds and flags
+channel_background_signal <- 1000
+
+single_one_threshold <- 50
+single_water_threshold <- 100
+single_all_threshold <- 0.15
+multi_all_threshold <- 0.25
+multi_all_ave_threshold <- 0.10
+multi_water_threshold <- 200
+
+```
+
+```{r dataframe, include=TRUE}
+options("scipen"=2, "digits"=4)
+
+files_to_open <- list.files(pattern = ".*basic.*\\.csv$", full.names = TRUE)
+if (length(files_to_open) > 0) {file_pointer_basic <- files_to_open[1]}
+
+files_to_open <- list.files(pattern = ".*linear.*\\.csv$", full.names = TRUE)
+if (length(files_to_open) > 0) {file_pointer_linear <- files_to_open[1]}
+
+files_to_open <- list.files(pattern = ".*limit.*\\.csv$", full.names = TRUE)
+if (length(files_to_open) > 0) {file_pointer_limit <- files_to_open[1]}
+
+```
+
+```{r basic barchart, include=TRUE}
+# for the basic testing of a 4-plex design
+df_counts <- read.csv(file_pointer_basic)
+
+# ERROR CHECK
+
+# remove unneeded rows
+df_counts <- df_counts[-c(1, 2, 3), ]
+# remove unneeded columns
+df_counts <- df_counts[, -c(1,2,3,5,6,11:ncol(df_counts))]
+# make the top row the column headers
+names(df_counts) <- df_counts[1, ]
+df_counts <- df_counts[-1, ]
+# rename to make simpler
+colnames(df_counts)[1] <- "condition"
+colnames(df_counts)[2] <- Ch01_target_name
+colnames(df_counts)[3] <- Ch02_target_name
+colnames(df_counts)[4] <- Ch03_target_name
+colnames(df_counts)[5] <- Ch04_target_name
+# convert to numbers
+df_counts[, Ch01_target_name] <- as.numeric(df_counts[, Ch01_target_name])
+df_counts[, Ch02_target_name] <- as.numeric(df_counts[, Ch02_target_name])
+df_counts[, Ch03_target_name] <- as.numeric(df_counts[, Ch03_target_name])
+df_counts[, Ch04_target_name] <- as.numeric(df_counts[, Ch04_target_name])
+# convert 0 to a small # for log scale graphing
+df_counts <- df_counts %>% mutate(across(where(is.numeric), ~ if_else(.x == 0, 1, .x)))
+# label by set in new col, first 5 chars, so set_all will be set_a
+df_counts <- df_counts %>% mutate(set_type = substr(df_counts$condition, 1, 5))
+
+# ---
+
+pivot_metrics <- df_counts %>% pivot_longer(cols = starts_with("Ch"), names_to = "channel", values_to = "counts")
+
+data_plot <- pivot_metrics %>% ggplot(aes(x = c(condition), y = counts, fill=channel)) +
+  geom_bar(position = "dodge", stat = "identity") + 
+  theme_minimal() +
+  geom_hline(yintercept=50, linetype="solid", color="black", linewidth=1.0, alpha=0.7) +
+  scale_y_log10() +
+  scale_fill_manual(values=c("blue","green","orange","red")) + 
+
+  ggtitle("Assay Testing 4-plex") + 
+  labs(x = "condition", y = "counts in 50uL", color = "black") +
+  theme(plot.title = element_text(hjust=0.5)) +
+  theme(legend.title = element_blank()) + 
+  theme(legend.position="right") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=0.5)) +
+  theme(axis.title.x = element_text(size = 12,color = "black",face = "bold")) +
+  theme(axis.title.y = element_text(size = 12,color = "black",face = "bold")) + 
+  theme(title = element_text(size = 12,color = "black",face = "bold"))
+
+ggsave(file="assay_basic.png", plot=data_plot, width=7, height=5)
+# Read the png and encode it as raw vector. Convert to character string
+encoded_string <- base64encode("assay_basic.png")
+
+```
+
+```{r channel loop and report, include=TRUE}
+#blank out a new file and add headers
+cat("<h1>Countable Labs</h1>\n", file = "report_file.html", append = FALSE)
+
+cat("<p>This report</p>\n", file = "report_file.html", append = TRUE)
+
+cat("<hr />\n", file = "report_file.html", append = TRUE)
+cat("<h3>Multiplexing Specificity</h3>\n", file = "report_file.html", append = TRUE)
+
+# the bar chart 
+cat("<img src=\"data:image/png;base64,", file = "report_file.html", append = TRUE)
+cat(encoded_string, file = "report_file.html", append = TRUE)
+cat("\" alt=\"assay performance bar chart\" width=700 height=500>\n", file = "report_file.html", append = TRUE)
+
+channel_list <- list(Ch01_target_name, Ch02_target_name, Ch03_target_name, Ch04_target_name)
+
+for (which_channel in channel_list) {
+  channel_working <- TRUE
+  single_one_pass <- TRUE
+  single_water_pass <- TRUE
+  single_all_pass <- TRUE
+  multi_all_pass <- TRUE
+  multi_all_ave_pass <- TRUE
+  multi_water_pass <- TRUE
+  # channel check on fatal errors - if it can't find the data column that matches this channel, abort the analysis and give error
+  # find which primer set this channel_target belongs to - in the first 4 rows. Which has value > VALUE else too high background
+  if (df_counts[1, which_channel] > channel_background_signal) {
+    primer_set <- "set_1"
+  } else if (df_counts[2, which_channel] > channel_background_signal) {
+    primer_set <- "set_2"
+  } else if (df_counts[3, which_channel] > channel_background_signal) {
+    primer_set <- "set_3"
+  } else if (df_counts[4, which_channel] > channel_background_signal) {
+    primer_set <- "set_4"
+  } else {
+    channel_working <- FALSE
+  }
+  
+  if(channel_working){
+    # group by set, check each in turn for the passing criteria within each set
+    check_set <- df_counts %>% filter(str_detect(set_type, primer_set) | str_detect(set_type, "set_a"))
+    single_one_counts <- check_set[1, which_channel]
+    single_water_counts <- check_set[2, which_channel] 
+    single_all_counts <- check_set[3, which_channel] 
+    multi_all_counts_1 <- check_set[4, which_channel] 
+    multi_all_counts_2 <- check_set[5, which_channel] 
+    multi_all_average <- (multi_all_counts_1 + multi_all_counts_2)/2
+    multi_water_counts_1 <- check_set[6, which_channel] 
+    multi_water_counts_2 <- check_set[7, which_channel] 
+    multi_water_average <- (multi_water_counts_1 + multi_water_counts_2)/2
+    
+    # --- threshold checks
+    
+    # off target (non template channels) in 1P1T is high, > VALUE, filter to pick out row one and only the non-target counts
+    background_counts <- check_set %>% filter(!str_detect(set_type, primer_set) | str_detect(set_type, "set_a"))
+    
+    background_counts <- check_set %>% select(-1,-6) %>% select(-all_of(which_channel))
+    
+    background_counts <- background_counts[1,]
+    # there will be 3 columns, check each to see if any are over threshold
+    if((background_counts[,1] > single_one_threshold) | (background_counts[,2] > single_one_threshold) | (background_counts[,3] > single_one_threshold)){
+      single_one_pass <- FALSE
+      }
+    # water blank single is high
+    if(single_water_counts > single_water_threshold){single_water_pass <- FALSE}
+    # counts deviate more than X% when singleplex with all template, relative to singleplex to one template
+    fraction_deviation <- (single_all_threshold * single_all_counts) - abs(single_all_counts - single_one_counts)
+    if(fraction_deviation < 0){single_all_pass <- FALSE}
+    # counts deviate more than X% when multiplex with all template, relative to singleplex to one template
+    fraction_deviation <- (multi_all_threshold * multi_all_average) - abs(multi_all_average - single_one_counts)
+    if(fraction_deviation < 0){multi_all_pass <- FALSE}
+    # duplicate counts compared for x% deviation, in the multiplex with all templates
+    fraction_deviation <- (multi_all_ave_threshold * multi_all_counts_1) - abs(multi_all_counts_1 - multi_all_counts_2)
+    if(fraction_deviation < 0){multi_all_ave_pass <- FALSE}
+    # water blank multiplex is high, > VALUE
+    if(multi_water_average > multi_water_threshold){multi_water_pass <- FALSE}
+  }
+    
+  status_text <- ""
+  verbose_text <- ""
+  
+  # to debug
+  #channel_working <- FALSE
+  #single_one_pass <- FALSE
+  #single_water_pass <- FALSE
+  #single_all_pass <- FALSE
+  #multi_all_pass <- FALSE
+  #multi_all_ave_pass <- FALSE
+  #multi_water_pass <- FALSE
+  
+  cat("<h3>Summary of assay performance for ", which_channel, "</h3>\n\n", file = "report_file.html", append = TRUE)
+  
+  row_1_string <- "<table style='border-collapse: collapse; width: 70%;' border=1><tbody><tr><td style='width: 20%;text-align: center;'><strong>Assay test type</td><td style='width: 10%;text-align: center;'><strong>Count limit</td><td style='width: 10%;text-align: center;'><strong>Fraction limit</td><td style='width: 10%;text-align: center;'><strong>Status</td><td style='width: 50%;text-align: center;'><strong>Warning message</td></tr>"
+  cat(row_1_string, file = "report_file.html", append = TRUE)
+  
+  if(channel_working){
+    status_text = "PASS"; verbose_text = ""
+    row_2_string <- paste0("<tr><td>Background signal</td><td style='text-align:center;'>",as.character(channel_background_signal),"</td><td style='text-align:center;'>-</td><td style='text-align:center;'>",status_text,"</td><td>",verbose_text,"</td></tr>")
+  } else {
+    status_text = "ERROR"; verbose_text = "Background signal is too high"
+    row_2_string <- paste0("<tr><td>Background signal</td><td style='text-align:center;'>",as.character(channel_background_signal),"</td><td style='text-align:center;'>-</td><td style='text-align:center;background-color: red;'>",status_text,"</td><td>",verbose_text,"</td></tr></table>")
+  }
+  cat(row_2_string, file = "report_file.html", append = TRUE)
+  
+  # else end or table - no more analysis to output
+  if(channel_working){
+    if(single_one_pass){status_text = "PASS"; verbose_text = ""
+      row_3_string <- paste0("<tr><td>Single assay to single template</td><td style='text-align:center;'>",as.character(single_one_threshold),"</td><td style='text-align:center;'>-</td><td style='text-align:center;'>",status_text,"</td><td>",verbose_text,"</td></tr>")
+    } else {
+      status_text = "WARNING"; verbose_text = "Single assay against its single template is not specific"
+      row_3_string <- paste0("<tr><td>Single assay to single template</td><td style='text-align:center;'>",as.character(single_one_threshold),"</td><td style='text-align:center;'>-</td><td style='text-align:center;background-color: yellow;'>",status_text,"</td><td>",verbose_text,"</td></tr>")
+    }
+    cat(row_3_string, file = "report_file.html", append = TRUE)
+    
+    if(single_water_pass){status_text = "PASS"; verbose_text = ""
+      row_4_string <- paste0("<tr><td>Single assay in water</td><td style='text-align:center;'>",as.character(single_water_threshold),"</td><td style='text-align:center;'>-</td><td style='text-align:center;'>",status_text,"</td><td>",verbose_text,"</td></tr>")
+    } else {
+      status_text = "WARNING"; verbose_text = "Single assay in water has high counts"
+      row_4_string <- paste0("<tr><td>Single assay in water</td><td style='text-align:center;'>",as.character(single_water_threshold),"</td><td style='text-align:center;'>-</td><td style='text-align:center;background-color: yellow;'>",status_text,"</td><td>",verbose_text,"</td></tr>")
+    }  
+    cat(row_4_string, file = "report_file.html", append = TRUE)
+    
+    if(single_all_pass){status_text = "PASS"; verbose_text = ""
+      row_5_string <- paste0("<tr><td>Single assay to all templates</td><td style='text-align:center;'>-</td><td style='text-align:center;'>",as.character(single_all_threshold),"</td><td style='text-align:center;'>",status_text,"</td><td>",verbose_text,"</td></tr>")
+    } else {
+      status_text = "WARNING"; verbose_text = "Single assay against all templates is not specific"
+      row_5_string <- paste0("<tr><td>Single assay to all templates</td><td style='text-align:center;'>-</td><td style='text-align:center;'>",as.character(single_all_threshold),"</td><td style='text-align:center;background-color: yellow;'>",status_text,"</td><td>",verbose_text,"</td></tr>")
+    }
+    cat(row_5_string, file = "report_file.html", append = TRUE)
+    
+    if(multi_all_pass){status_text = "PASS"; verbose_text = ""
+      row_6_string <- paste0("<tr><td>Multiplex against all templates</td><td style='text-align:center;'>-</td><td style='text-align:center;'>",as.character(multi_all_threshold),"</td><td style='text-align:center;'>",status_text,"</td><td>",verbose_text,"</td></tr>")
+    } else {
+      status_text = "WARNING"; verbose_text = "Multiplex against all templates is not specific"
+      row_6_string <- paste0("<tr><td>Multiplex against all templates</td><td style='text-align:center;'>-</td><td style='text-align:center;'>",as.character(multi_all_threshold),"</td><td style='text-align:center;background-color: yellow;'>",status_text,"</td><td>",verbose_text,"</td></tr>")
+    }
+    cat(row_6_string, file = "report_file.html", append = TRUE)
+    
+    if(multi_all_ave_pass){status_text = "PASS"; verbose_text = ""
+      row_7_string <- paste0("<tr><td>Multiplex replicates</td><td style='text-align:center;'>-</td><td style='text-align:center;'>",as.character(multi_all_ave_threshold),"</td><td style='text-align:center;'>",status_text,"</td><td>",verbose_text,"</td></tr>")
+    } else {
+      status_text = "WARNING"; verbose_text = "Multiplex replicates deviate above threshold"
+      row_7_string <- paste0("<tr><td>Multiplex replicates</td><td style='text-align:center;'>-</td><td style='text-align:center;'>",as.character(multi_all_ave_threshold),"</td><td style='text-align:center;background-color: yellow;'>",status_text,"</td><td>",verbose_text,"</td></tr>")
+    }
+    cat(row_7_string, file = "report_file.html", append = TRUE)
+    
+    if(multi_water_pass){status_text = "PASS"; verbose_text = ""
+      row_8_string <- paste0("<tr><td>Multiplex in water</td><td style='text-align:center;'>",as.character(multi_water_threshold),"</td><td style='text-align:center;'>-</td><td style='text-align:center;'>",status_text,"</td><td>",verbose_text,"</td></tr></tbody></table>\n")
+    } else {
+      status_text = "WARNING"; verbose_text = "Multiplex assay in water has high counts"
+      row_8_string <- paste0("<tr><td>Multiplex in water</td><td style='text-align:center;'>",as.character(multi_water_threshold),"</td><td style='text-align:center;'>-</td><td style='text-align:center;background-color: yellow;'>",status_text,"</td><td>",verbose_text,"</td></tr></tbody></table>\n")
+    }
+    cat(row_8_string, file = "report_file.html", append = TRUE)
+  }
+  cat("<hr />\n", file = "report_file.html", append = TRUE)
+
+}
+
+```
