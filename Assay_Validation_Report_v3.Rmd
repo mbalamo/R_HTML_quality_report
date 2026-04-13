@@ -21,10 +21,10 @@ library(base64enc)
 ```{r define assay, include=TRUE}
 
 # target name by color channel. Must include Ch number as prefix else graph will mis-order alphabetically
-Ch01_target_name <- "Ch01_NCO2"
-Ch02_target_name <- "Ch02_VWC2"
-Ch03_target_name <- "Ch03_ZNF768"
-Ch04_target_name <- "Ch04_MIR129-2"
+Ch01_target_name <- "Ch01_EGR1"
+Ch02_target_name <- "Ch02_HTT"
+Ch03_target_name <- "Ch03_ZNF123"
+Ch04_target_name <- "Ch04_MED23"
 
 # thresholds and flags
 channel_background_signal <- 1000
@@ -61,7 +61,7 @@ df_counts <- read.csv(file_pointer_basic)
 # remove unneeded rows
 df_counts <- df_counts[-c(1, 2, 3), ]
 # remove unneeded columns
-df_counts <- df_counts[, -c(1,2,3,5,6,11:ncol(df_counts))]
+df_counts <- df_counts[, 2:ncol(df_counts)]
 # make the top row the column headers
 names(df_counts) <- df_counts[1, ]
 df_counts <- df_counts[-1, ]
@@ -110,7 +110,7 @@ encoded_string <- base64encode("assay_basic.png")
 
 ```{r channel loop and report, include=TRUE}
 #blank out a new file and add headers
-cat("<h1>Countable Labs</h1>\n", file = "report_file.html", append = FALSE)
+cat("<h1>VALIDATION REPORT</h1>\n", file = "report_file.html", append = FALSE)
 
 cat("<p>This report</p>\n", file = "report_file.html", append = TRUE)
 
